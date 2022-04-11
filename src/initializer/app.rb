@@ -1,6 +1,8 @@
-module Initializer
-  class App
+# frozen_string_literal: true
 
+module Initializer
+  # Generally class have to initialize app parameters and parameter values
+  class App
     attr_reader :params
 
     def initialize
@@ -21,7 +23,7 @@ module Initializer
         '-nbl': 'Clear source of blank lines',
         '--no-blank-lines': 'Clear source of blank lines',
         '-s': 'Sort packages ABS',
-        '--sort': 'Sort packages ABS',
+        '--sort': 'Sort packages ABS'
       }
     end
 
@@ -36,14 +38,15 @@ module Initializer
       ARGV.each do |argument|
         parsed_argument = parse_argument(argument)
         raise "Unknown argument #{parsed_argument[:key]}" unless self.class.available_arguments[parsed_argument[:key]]
+
         @params[parsed_argument[:key].to_s.gsub('-', '').to_sym] = parsed_argument[:value]
       end
     end
 
     def parse_argument(argument)
       result = {
-        :key => nil,
-        :value => nil
+        key: nil,
+        value: nil
       }
       separated = argument.split('=')
       result[:key] = separated[0].to_sym

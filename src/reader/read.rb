@@ -1,4 +1,7 @@
+# frozen_string_literal: true
+
 module Reader
+  # Class allows you to read Gemfile content and modify it in memory
   class Read
     attr_reader :file_name, :content, :groups
 
@@ -9,8 +12,9 @@ module Reader
       @content = File.read(file_name)
     end
 
-    def set_content(content)
-      raise "Content should be string" unless content.is_a? String
+    def content=(content)
+      raise 'Content should be string' unless content.is_a? String
+
       @content = content
     end
 
@@ -26,31 +30,36 @@ module Reader
         group_name = group.match(/(?<=group ).+?(?= do)/).to_s
         groups[group_name] ||= []
         groups[group_name].concat get_gems(group)
-        groups[group_name] = groups[group_name]
+        groups[group_name] = groups[group_name].sort
       end
-      groups['default'] = get_gems(prepared_content)
+      groups['default'] = get_gems(prepared_content).sort
       @groups = groups
     end
 
     def sort_gems
-      prepared_content = prepare_content
-      new_content = ''
-      new_content += prepared_content.match(/^.*?(?=gem )/).to_s.gsub(' EOL ', "\n") + "\n"
-
       parse_groups
+      prepared_content = prepare_content
+      new_content = "# frozen_string_literal: true\n\n"
+      new_content += "#{prepared_content.match(/^.*?(?=gem )/).to_s.gsub(' EOL ', "\n")}\n"
+      new_content += map_content_to_by_sorted_gems(groups)
+
+      self.content = new_content
+    end
+
+    private
+
+    def map_content_to_by_sorted_gems(groups)
+      new_content = ''
       groups.each do |group_name, gems|
         new_content += "\ngroup #{group_name} do\n" unless group_name == 'default'
         gems.each do |gem|
-          regex = '((?:^\s*?#.*\n){0,}?+^\s*?(?:gem\s[\'"]' + gem + '[\'"].*?))\n'
+          regex = "((?:^\s*?#.*\n){0,}?+^\s*?(?:gem\s['\"]#{gem}['\"].*?))\n"
           new_content += content.match(/#{regex}/).to_s
         end
         new_content += "end\n" unless group_name == 'default'
       end
-
-      set_content(new_content)
+      new_content += "\n"
     end
-
-    private
 
     def prepare_content
       content.gsub("\n", ' EOL ')
@@ -59,11 +68,10 @@ module Reader
     def get_gems(content)
       result = []
       content.gsub(' EOL ', "\n").scan(/^(?:^\s*?gem).+(?<=gem ['"]).+?(?=['"])/).each do |line|
-        gem_name = line.to_s.gsub(/\s.*gem\s.*['"]/, '').to_s.gsub(/gem\s.*['"]/, '')
+        gem_name = line.to_s.gsub(/\s.*gem\s.*['"]/, '').to_s.gsub(/gem\s.*['"]/, '').gsub("\n", '')
         result.append(gem_name)
       end
-      result.sort
+      result
     end
-
   end
 end
