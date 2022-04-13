@@ -6,7 +6,7 @@ def preload_app
   end
 
   files.each do |file|
-    require "./#{file}"
+    require_relative "./#{file}"
   end
 end
 
